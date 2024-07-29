@@ -377,22 +377,139 @@ app.get('/reviews-by-user/:userId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching reviews by user' });
   }
 });
+const { Op } = require('sequelize');
 
-// Endpoint to fetch all bookings within a date range
-app.get('/bookings-in-range', async (req, res) => {
-  const { startDate, endDate } = req.query;
+// Define Amenity model
+const Amenity = sequelize.define('Amenity', {
+  amenityId: {
+    type: DataTypes.STRING,
+    primaryKey: true
+  },
+  name: DataTypes.STRING,
+  description: DataTypes.TEXT
+});
+
+// Sync Amenity model
+sequelize.sync().then(() => {
+  console.log('Amenity table synchronized');
+}).catch(error => {
+  console.error('Error synchronizing Amenity table:', error);
+});
+
+// Add new endpoints for managing amenities
+app.post('/amenities', async (req, res) => {
+  const { amenityId, name, description } = req.body;
   try {
-    const bookings = await Booking.findAll({
-      where: {
-        checkInDate: { [Op.between]: [new Date(startDate), new Date(endDate)] }
-      }
-    });
+    const amenity = await Amenity.create({ amenityId, name, description });
+    res.json(amenity);
+  } catch (error) {
+    console.error('Error adding amenity:', error);
+    res.status(500).json({ error: 'Error adding amenity' });
+  }
+});
+
+app.get('/amenities', async (req, res) => {
+  try {
+    const amenities = await Amenity.findAll();
+    res.json(amenities);
+  } catch (error) {
+    console.error('Error fetching amenities:', error);
+    res.status(500).json({ error: 'Error fetching amenities' });
+  }
+});
+
+app.put('/amenities/:amenityId', async (req, res) => {
+  const { amenityId } = req.params;
+  const { name, description } = req.body;
+  try {
+    const amenity = await Amenity.findOne({ where: { amenityId } });
+    if (!amenity) {
+      return res.status(404).json({ error: 'Amenity not found' });
+    }
+
+    await amenity.update({ name, description });
+    res.json({ message: 'Amenity updated successfully', amenity });
+  } catch (error) {
+    console.error('Error updating amenity:', error);
+    res.status(500).json({ error: 'Error updating amenity' });
+  }
+});
+
+app.delete('/amenities/:amenityId', async (req, res) => {
+  const { amenityId } = req.params;
+  try {
+    const amenity = await Amenity.findOne({ where: { amenityId } });
+    if (!amenity) {
+      return res.status(404).json({ error: 'Amenity not found' });
+    }
+
+    await amenity.destroy();
+    res.json({ message: 'Amenity deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting amenity:', error);
+    res.status(500).json({ error: 'Error deleting amenity' });
+  }
+});
+
+app.post('/cancel-booking', async (req, res) => {
+  const { bookingId, userId } = req.body;
+  try {
+    const booking = await Booking.findOne({ where: { bookingId, userId } });
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    await booking.destroy();
+    res.json({ message: 'Booking canceled successfully' });
+  } catch (error) {
+    console.error('Error canceling booking:', error);
+    res.status(500).json({ error: 'Error canceling booking' });
+  }
+});
+
+// Endpoint to get a user's booking details
+app.get('/booking-details/:bookingId', async (req, res) => {
+  const { bookingId } = req.params;
+  try {
+    const booking = await Booking.findOne({ where: { bookingId } });
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.json(booking);
+  } catch (error) {
+    console.error('Error fetching booking details:', error);
+    res.status(500).json({ error: 'Error fetching booking details' });
+  }
+});
+
+app.get('/bookings-by-room/:roomId', async (req, res) => {
+  const { roomId } = req.params;
+  try {
+    const bookings = await Booking.findAll({ where: { roomId } });
     res.json(bookings);
   } catch (error) {
-    console.error('Error fetching bookings within range:', error);
-    res.status(500).json({ error: 'Error fetching bookings within range' });
+    console.error('Error fetching bookings by room:', error);
+    res.status(500).json({ error: 'Error fetching bookings by room' });
+  }
+});
+
+app.get('/room-amenities/:roomId', async (req, res) => {
+  const { roomId } = req.params;
+  try {
+    const room = await Room.findOne({ where: { roomId } });
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    const amenities = await Amenity.findAll({ where: { roomId } });
+    res.json(amenities);
+  } catch (error) {
+    console.error('Error fetching room amenities:', error);
+    res.status(500).json({ error: 'Error fetching room amenities' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
