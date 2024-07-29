@@ -34,19 +34,17 @@
             background-color: white;
             border: none;
             color: black;
-            padding: 10px 20px; /* Adjust padding to your preference */
+            padding: 10px 20px;
             font-weight: 500;
             font-size: 16px;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
         #chat-button:hover {
             background-color: #3a4fee;
-            /* Adjust hover styles as needed */
+            color: white;
         }
-
         #chat-container {
             display: none;
             flex-direction: column;
@@ -117,7 +115,6 @@
             border-bottom-left-radius: 5px;
             backdrop-filter: blur(10px);
         }
-    
         .input-area {
             display: flex;
             padding: 15px;
@@ -125,7 +122,6 @@
             border-top: 1px solid #333;
             z-index: 10;
         }
-
         #user-input {
             flex-grow: 1;
             border: none;
@@ -138,11 +134,9 @@
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
         }
-
         #user-input:focus {
             box-shadow: 0 0 0 2px;
         }
-
         #send-button {
             background-color: black;
             border: none;
@@ -155,7 +149,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
         #send-button:hover {
             background-color: #3a4fee;
         }
@@ -188,12 +181,27 @@
                 opacity: 1;
             }
         }
+        .chat-footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #aaa;
+            background-color: rgba(30, 30, 30, 0.8);
+            border-top: 1px solid #333;
+        }
+        .chat-footer a {
+            color: #3a4fee;
+            text-decoration: none;
+        }
+        .chat-footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div id="chat-widget">
         <button id="chat-button">
-            <span id="chat-icon">×</span>
+            <span id="chat-icon">Chat</span>
         </button>        
         <div id="chat-container">
             <div class="chat-header">Hotel Booking ChatBot</div>
@@ -203,6 +211,9 @@
             <div class="input-area">
                 <input type="text" id="user-input" placeholder="Type your message here...">
                 <button id="send-button">Send</button>
+            </div>
+            <div class="chat-footer">
+                <p>Powered by Hotel Booking Inc. <a href="#">Learn more</a></p>
             </div>
         </div>
     </div>
@@ -219,9 +230,15 @@
 
         const userId = Math.random().toString(36).substring(7);
 
+        let isOpen = false;
+
         function toggleChat() {
-            chatContainer.style.display = chatContainer.style.display === 'flex' ? 'none' : 'flex';
+            isOpen = !isOpen;
+            chatContainer.style.display = isOpen ? 'flex' : 'none';
+            chatButton.innerHTML = isOpen ? '×' : 'Chat'; // Change the content of the button based on isOpen state
         }
+
+        chatButton.addEventListener('click', toggleChat);
 
         function addMessage(sender, message) {
             const messageElement = document.createElement('div');
@@ -244,18 +261,6 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return indicatorElement;
         }
-
-        let isOpen = false;
-
-        function toggleChat() {
-            isOpen = !isOpen;
-            chatContainer.style.display = isOpen ? 'flex' : 'none';
-            chatButton.innerHTML = isOpen ? '×' : 'Chat'; // Change the content of the button based on isOpen state
-        }
-
-        chatButton.addEventListener('click', toggleChat);
-
-
 
         async function sendMessage() {
             const message = userInput.value.trim();
@@ -295,7 +300,6 @@
             }
         }
 
-        chatButton.addEventListener('click', toggleChat);
         sendButton.addEventListener('click', sendMessage);
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -303,12 +307,10 @@
             }
         });
 
-        // Initial greeting
         setTimeout(() => {
             addMessage('Chatbot', 'Hello! How can I assist you with your hotel booking today?');
         }, 1000);
 
-        // Initialize particles.js
         particlesJS("particles-js", {
             particles: {
                 number: { value: 80, density: { enable: true, value_area: 800 } },
