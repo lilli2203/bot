@@ -92,6 +92,182 @@ app.post('/register', async (req, res) => {
   }
 });
 
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+const RoomType = sequelize.define('RoomType', {
+  typeId: {
+    type: DataTypes.STRING,
+    primaryKey: true
+  },
+  name: DataTypes.STRING,
+  description: DataTypes.TEXT,
+  pricePerNight: DataTypes.FLOAT
+});
+
+sequelize.sync().then(() => {
+  console.log('RoomType table synchronized');
+}).catch(error => {
+  console.error('Error synchronizing RoomType table:', error);
+});
+
+const Admin = sequelize.define('Admin', {
+  adminId: {
+    type: DataTypes.STRING,
+    primaryKey: true
+  },
+  username: DataTypes.STRING,
+  password: DataTypes.STRING
+});
+
+sequelize.sync().then(() => {
+  console.log('Admin table synchronized');
+}).catch(error => {
+  console.error('Error synchronizing Admin table:', error);
+});
+
+function authenticateAdmin(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    req.admin = decoded;
+    next();
+  });
+}
+
+app.post('/admin/register', async (req, res) => {
+  const { adminId, username, password } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = await Admin.create({ adminId, username, password: hashedPassword });
+    res.json(admin);
+  } catch (error) {
+    console.error('Error registering admin:', error);
+    res.status(500).json({ error: 'Error registering admin' });
+  }
+});
+
+app.post('/admin/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const admin = await Admin.findOne({ where: { username } });
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ adminId: admin.adminId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (error) {
+    console.error('Error logging in admin:', error);
+    res.status(500).json({ error: 'Error logging in admin' });
+  }
+});
+
+app.post('/room-types', authenticateAdmin, async (req, res) => {
+  const { typeId, name, description, pricePerNight } = req.body;
+  try {
+    const roomType = await RoomType.create({ typeId, name, description, pricePerNight });
+    res.json(roomType);
+  } catch (error) {
+    console.error('Error creating room type:', error);
+    res.status(500).json({ error: 'Error creating room type' });
+  }
+});
+
+app.get('/room-types', async (req, res) => {
+  try {
+    const roomTypes = await RoomType.findAll();
+    res.json(roomTypes);
+  } catch (error) {
+    console.error('Error fetching room types:', error);
+    res.status(500).json({ error: 'Error fetching room types' });
+  }
+});
+
+app.put('/room-types/:typeId', authenticateAdmin, async (req, res) => {
+  const { typeId } = req.params;
+  const { name, description, pricePerNight } = req.body;
+  try {
+    const roomType = await RoomType.findOne({ where: { typeId } });
+    if (!roomType) {
+      return res.status(404).json({ error: 'Room type not found' });
+    }
+
+    await roomType.update({ name, description, pricePerNight });
+    res.json({ message: 'Room type updated successfully', roomType });
+  } catch (error) {
+    console.error('Error updating room type:', error);
+    res.status(500).json({ error: 'Error updating room type' });
+  }
+});
+
+app.delete('/room-types/:typeId', authenticateAdmin, async (req, res) => {
+  const { typeId } = req.params;
+  try {
+    const roomType = await RoomType.findOne({ where: { typeId } });
+    if (!roomType) {
+      return res.status(404).json({ error: 'Room type not found' });
+    }
+
+    await roomType.destroy();
+    res.json({ message: 'Room type deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting room type:', error);
+    res.status(500).json({ error: 'Error deleting room type' });
+  }
+});
+
+const Feedback = sequelize.define('Feedback', {
+  feedbackId: {
+    type: DataTypes.STRING,
+    primaryKey: true
+  },
+  userId: DataTypes.STRING,
+  content: DataTypes.TEXT,
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  }
+});
+
+sequelize.sync().then(() => {
+  console.log('Feedback table synchronized');
+}).catch(error => {
+  console.error('Error synchronizing Feedback table:', error);
+});
+
+app.post('/feedback', authenticateUser, async (req, res) => {
+  const { userId, content } = req.body;
+  try {
+    const feedback = await Feedback.create({
+      feedbackId: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      userId,
+      content
+    });
+    res.json(feedback);
+  } catch (error) {
+    console.error('Error adding feedback:', error);
+    res.status(500).json({ error: 'Error adding feedback' });
+  }
+});
+
+app.get('/feedback/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const feedbacks = await Feedback.findAll({ where: { userId } });
+    res.json(feedbacks);
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ error: 'Error fetching feedback' });
+  }
+});
+
 app.get('/conversations/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
