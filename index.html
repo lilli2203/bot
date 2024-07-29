@@ -413,6 +413,31 @@ body {
             <div class="chat-messages">
                 <div id="particles-js"></div>
             </div>
+              <div id="chat-container">
+            <div class="chat-header">
+                <div class="user-info">
+                    <img src="user-avatar.png" alt="User Avatar" class="user-avatar">
+                    <div class="user-details">
+                        <span class="user-name">User Name</span>
+                        <span class="user-status">Online</span>
+                    </div>
+                </div>
+                <div class="close-chat">
+                    <button id="close-button">×</button>
+                </div>
+            </div>
+            <div class="chat-messages">
+                <div id="particles-js"></div>
+            </div>
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Type your message here...">
+                <button id="send-button">Send</button>
+            </div>
+            <div class="chat-footer">
+                <button id="help-button">Help</button>
+            </div>
+        </div>
+    </div>
             <div class="input-area">
                 <input type="text" id="user-input" placeholder="Type your message here...">
                 <button id="send-button">Send</button>
@@ -440,8 +465,17 @@ body {
         function toggleChat() {
             isOpen = !isOpen;
             chatContainer.style.display = isOpen ? 'flex' : 'none';
-            chatButton.innerHTML = isOpen ? '×' : 'Chat'; // Change the content of the button based on isOpen state
+            chatButton.innerHTML = isOpen ? '×' : 'Chat'; 
         }
+
+        document.getElementById('close-button').addEventListener('click', () => {
+    document.getElementById('chat-container').style.display = 'none';
+});
+
+document.getElementById('help-button').addEventListener('click', () => {
+    addMessage('Chatbot', 'How can I assist you? Here are some commands you can use: "Book a room", "Cancel booking", "Check availability".');
+});
+
 
         chatButton.addEventListener('click', toggleChat);
 
